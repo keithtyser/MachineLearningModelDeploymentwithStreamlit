@@ -28,3 +28,4 @@ ax.set_ylabel("y label")
 fig.autofmt_xdate()
 
 st.pyplot(fig)
+

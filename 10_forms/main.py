@@ -32,3 +32,4 @@ Time of visit: {visit_time}
 
 Allergies: {allergies}
 """)
+

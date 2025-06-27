@@ -65,3 +65,4 @@ st.divider()
 
 txt_area = st.text_area("What do you want to tell me?", height=500, placeholder="Write your message here")
 st.write(txt_area)
+
