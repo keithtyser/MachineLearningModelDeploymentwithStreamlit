@@ -3,6 +3,9 @@ import yaml
 from yaml.loader import SafeLoader
 import streamlit_authenticator as stauth
 
+hashed_pwd = stauth.Hasher(['12345']).generate()
+st.write(hashed_pwd)
+
 # Open YAML file
 
 with open('config.yaml') as file:
