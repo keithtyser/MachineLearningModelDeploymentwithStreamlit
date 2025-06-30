@@ -10,28 +10,32 @@ from statsforecast.models import CrostonOptimized
 
 @st.cache_resource
 def init_connection():
-    pass
+    url: str = st.secrets['supabase_url']
+    key: str = st.secrets['supabase_key']
 
-# Run the function to make the connection
+    client: Client = create_client(url, key)
 
-# Function to query the db
-# Return all data
+    return client
+
+
+supabase = init_connection()
+
+# Query the db
 
 
 @st.cache_data(ttl=600)  # cache clears after 10 minutes
 def run_query():
-    pass
-
-# Function to create a Dataframe
-# Make sure that volume is an integer
-# Return dataframe
+    # Return all data
+    return supabase.table('car_parts_monthly_sales').select("*").execute()
 
 
 @st.cache_data(ttl=600)
 def create_dataframe():
-    pass
+    rows = run_query()
+    df = pd.json_normalize(rows.data)
+    df['volume'] = df['volume'].astype(int)
 
-# Function to plot data
+    return df
 
 
 @st.cache_data
@@ -51,9 +55,6 @@ def plot_volume(ids):
 
     st.pyplot(fig)
 
-# Function to format the dataframe as expected
-# by statsforecast
-
 
 @st.cache_data
 def format_dataset(ids):
@@ -64,22 +65,31 @@ def format_dataset(ids):
 
     return model_df
 
-# Create the statsforecast object to train the model
-# Return the statsforecast object
-
 
 @st.cache_resource
 def create_sf_object(model_df):
-    pass
+    models = [CrostonOptimized()]
 
-# Function to make predictions
-# Inputs: product_ids and horizon
-# Returns a CSV
+    sf = StatsForecast(
+        df=model_df,
+        models=models,
+        freq='MS',
+        n_jobs=-1
+    )
+
+    return sf
 
 
 @st.cache_data(show_spinner="Making predictions...")
 def make_predictions(ids, horizon):
-    pass
+
+    model_df = format_dataset(ids)
+
+    sf = create_sf_object(model_df)
+
+    forecast_df = sf.forecast(h=horizon)
+
+    return forecast_df.to_csv(header=True)
 
 
 if __name__ == "__main__":
@@ -101,4 +111,11 @@ if __name__ == "__main__":
 
             forecast_btn = st.button("Forecast", type="primary")
 
-            # Download CSV file if the forecast button is pressed
+            if forecast_btn:
+                csv_file = make_predictions(product_ids, horizon)
+                st.download_button(
+                    label="Download predictions",
+                    data=csv_file,
+                    file_name="predictions.csv",
+                    mime="text/csv"
+                )
