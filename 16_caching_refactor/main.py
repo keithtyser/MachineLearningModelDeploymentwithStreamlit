@@ -45,6 +45,7 @@ def end_before_start(start_date, end_date):
         return True
     else:
         return False
+        
     
 def display_dashboard(start_date, end_date, target):
     tab1, tab2 = st.tabs(["Population change", "Compare"])

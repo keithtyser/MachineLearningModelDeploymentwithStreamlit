@@ -2,9 +2,21 @@ import streamlit as st
 import numpy as np
 from joblib import load
 
-# Function to load model
+@st.cache_resource(show_spinner="Loading model...")
+def load_model():
+    pipe = load('model/pipe.joblib')
 
-# Function to make a prediction
+    return pipe
+
+@st.cache_data(show_spinner="Making a prediction...")
+def make_prediction(_pipe, X_pred):
+
+    features = [each[0] for each in X_pred]
+    features = np.array(features).reshape(1,-1)
+
+    pred = _pipe.predict(features)
+
+    return pred[0]
 
 if __name__ == "__main__":
     st.title("Mushroom classifier 🍄")
@@ -31,7 +43,7 @@ if __name__ == "__main__":
     pred_btn = st.button("Predict", type="primary")
 
     if pred_btn:
-        # Load model
+        pipe = load_model()
 
         x_pred = [odor, 
                   gill_size, 
@@ -43,7 +55,11 @@ if __name__ == "__main__":
                   ring_type, 
                   spore_print_color]
         
-        # Make a prediction
+        pred = make_prediction(pipe, x_pred)
+
+        nice_pred = "The mushroom is poisonous 🤢" if pred == 'p' else "The mushroom is edible 🍴"
+
+        st.write(nice_pred)
 
     
 

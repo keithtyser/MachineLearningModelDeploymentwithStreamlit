@@ -9,22 +9,63 @@ COLS = ['class', 'odor', 'gill-size', 'gill-color', 'stalk-surface-above-ring',
        'stalk-surface-below-ring', 'stalk-color-above-ring',
        'stalk-color-below-ring', 'ring-type', 'spore-print-color']
 
-# Function to read the data
+@st.cache_data(show_spinner="Fetching data...")
+def read_data(url, cols):
+    df = pd.read_csv(url)
+    df = df[cols]
 
-# Function to fit the LabelEncoder
+    return df
 
-# Function to fit the OrdinalEncoder
+@st.cache_resource
+def get_target_encoder(data):
+    le = LabelEncoder()
+    le.fit(data['class'])
 
-# Function to encode data
+    return le
 
-# Function to train the model
+@st.cache_resource
+def get_features_encoder(data):
+    oe = OrdinalEncoder()
+    X_cols = data.columns[1:]
+    oe.fit(data[X_cols])
 
-# Function to make a prediction
+    return oe
+
+@st.cache_data(show_spinner="Encoding data...")
+def encode_data(data, _X_encoder, _y_encoder):
+    data['class'] = _y_encoder.transform(data['class'])
+
+    X_cols = data.columns[1:]
+    data[X_cols] = _X_encoder.transform(data[X_cols])
+
+    return data
+
+@st.cache_resource(show_spinner="Training model...")
+def train_model(data):
+    X = data.drop(['class'], axis=1)
+    y = data['class']
+
+    gbc = GradientBoostingClassifier(max_depth=5, random_state=42)
+
+    gbc.fit(X, y)
+
+    return gbc
+
+@st.cache_data(show_spinner="Making a prediction...")
+def make_prediction(_model, _X_encoder, X_pred):
+
+    features = [each[0] for each in X_pred]
+    features = np.array(features).reshape(1,-1)
+    encoded_features = _X_encoder.transform(features)
+
+    pred = _model.predict(encoded_features)
+
+    return pred[0]
 
 if __name__ == "__main__":
     st.title("Mushroom classifier 🍄")
     
-    # Read the data
+    df = read_data(URL, COLS)
     
     st.subheader("Step 1: Select the values for prediction")
 
@@ -47,25 +88,30 @@ if __name__ == "__main__":
 
     pred_btn = st.button("Predict", type="primary")
 
-    # If the button is clicked:
-    # 1. Fit the LabelEncoder
-    # 2. Fit the OrdinalEncoder
-    # 3. Encode the data
-    # 4. Train the model
+    if pred_btn:
+        le = get_target_encoder(df)
+        oe = get_features_encoder(df)
 
-    x_pred = [odor, 
-                gill_size, 
-                gill_color, 
-                stalk_surface_above_ring, 
-                stalk_surface_below_ring, 
-                stalk_color_above_ring, 
-                stalk_color_below_ring, 
-                ring_type, 
-                spore_print_color]
-    
-    # 5. Make a prediction
-    # 6. Format the prediction to be a nice text
-    # 7. Output it to the screen
+        encoded_df = encode_data(df, oe, le)
+
+        gbc = train_model(encoded_df)
+
+        x_pred = [odor, 
+                  gill_size, 
+                  gill_color, 
+                  stalk_surface_above_ring, 
+                  stalk_surface_below_ring, 
+                  stalk_color_above_ring, 
+                  stalk_color_below_ring, 
+                  ring_type, 
+                  spore_print_color]
+        
+        pred = make_prediction(gbc, oe, x_pred)
+
+        nice_pred = "The mushroom is poisonous 🤢" if pred == 1 else "The mushroom is edible 🍴"
+
+        st.write(nice_pred)
+
     
 
 
